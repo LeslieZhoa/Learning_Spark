@@ -80,7 +80,7 @@
         sudo apt-get install vim
         vim /etc/hosts
         
-        # 添加如下
+        # 将里面东西全部删除替换如下
         192.168.199.128    node-1
         192.168.199.129    node-2
         192.168.199.130    node-3
@@ -132,3 +132,119 @@
         # 测试
         java --version
         ```
+4. #### 搭建hadoop集群
+    - 点击[此链接](https://mirrors.tuna.tsinghua.edu.cn/apache/hadoop/common/hadoop-2.10.0/hadoop-2.10.0.tar.gz)下载hadoop包到node-1,解压：
+        ```
+        # 建立apps文件夹
+        mkdir BigData/apps
+        # 解压hadoop
+        tar -zxvf BigData/hadoop-2.10.0.tar.gz -C BigData/apps
+        ```
+    - 配置文件
+        ```
+        cd BigData/apps/hadoop-2.10.0/etc/hadoop
+        # 查看java目录
+        which java
+        # 我的显示 /usr/java/jdk-13.0.2/bin/java
+        # 配置java环境
+        vim hadoop-env.sh
+        # 找到export JAVA_HOME=
+        #更改为
+        export JAVA_HOME=/usr/java/jdk-13.0.2/
+        
+        # 配置core-site.xml
+        vim core-site.xml
+        # 更改<configuration>部分
+        <configuration>
+            <property>
+                <name>fs.defaultFS</name>
+                <value>hdfs://node-1:9000</value>
+            </property>
+        </configuration>
+        
+        
+        # 配置hdfs-site.xml
+        vim hdfs-site.xml 
+        # 更改<configuration>部分
+         <configuration>
+            <property>
+                <name>dfs.namenode.name.dir</name>
+                <value>/root/BigData/hdpdata/name</value>
+            </property>
+            <property>
+                <name>dfs.datanode.data.dir</name>
+                <value>/root/BigData/hdpdata/data</value>
+            </property>
+             <property>
+                <name>dfs.tmp.dir</name>
+                <value>/root/BigData/hdpdata/tmp</value>
+             </property>
+            <property>
+                <name>dfs.replication</name>
+                <value>3</value>
+            </property>
+        </configuration>
+        
+        # 配置mapred-site.xml
+        mv mapred-site.xml.template mapred-site.xml
+        vim mapred-site.xml
+        # 更改<configuration>部分
+        <configuration>
+            <property>
+                <name>mapreduce.framework.name</name>
+                <value>yarn</value>
+            </property>
+        </configuration>
+        
+        # 配置yarn-site.xml
+        vim yarn-site.xml
+        # 更改<configuration>部分
+        <configuration>
+            <property>
+                <name>yarn.resourcemanager.hostname</name>
+                <value>node-1</value>
+            </property>
+            <property>
+                <name>yarn.nodemanager.aux-services</name>
+                <value>mapreduce_shuffle</value>
+            </property>
+        </configuration>
+        
+        # 配置slaves
+        vim slaves
+        #内容删除替换如下：
+        node-1
+        node-2
+        node-3
+        ```
+    - 配置环境变量
+        ```
+        vim /etc/profile
+        # 在文件末尾加上
+        export HADOOP_HOME=/root/BigData/apps/hadoop-2.10.0/
+        export PATH=$PATH:$HADOOP_HOME/bin:$HADOOP_HOME/sbin
+        export HADOOP_COMMOM_LIB_NATIVE_DIR=$HADOOP_HOME/lib/native
+        
+        # 激活一下
+        source /etc/profile
+        ```
+    - 复制其他虚拟环境。
+        - 退出node-1，右键复制，完全复制node-2和node-3
+        - 按照上述方式更改有线连接的ipv4
+        - 修改计算机名
+            ```
+            sudo gedit /etc/hostname
+            # 将node-1改为node-2
+            # 重启电脑
+            ```
+        
+        - node-3按照同样方法
+    - 初始化
+        ```
+        hadoop namenode -format
+        # 启动
+        start-dfs.sh
+        # 登陆node-1:50070看Live Nodes是否为3
+        ```
+    
+        
