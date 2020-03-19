@@ -23,6 +23,8 @@
     - 安装增强功能，为了方便跨机复制，如果失败就点击如下图的弹出，重新安装<br>
     <img src="https://github.com/LeslieZhoa/Learning_Spark/blob/master/1.%E5%AE%89%E8%A3%85%E7%8E%AF%E5%A2%83/img/15.png?raw=true"/><br>
      <img src="https://github.com/LeslieZhoa/Learning_Spark/blob/master/1.%E5%AE%89%E8%A3%85%E7%8E%AF%E5%A2%83/img/16.png?raw=true"/><br>
+    - 设置可跨机粘贴，点击node-1设置的常规-->高级，共享粘贴版和拖放都选择双向<br>
+        <img src="https://github.com/LeslieZhoa/Learning_Spark/blob/master/1.%E5%AE%89%E8%A3%85%E7%8E%AF%E5%A2%83/img/22.png?raw=true"/><br>
     - 将用户设置为root.打开终端
         ```shell
         sudo passwd root
