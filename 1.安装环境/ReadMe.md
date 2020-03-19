@@ -24,33 +24,109 @@
     <img src="https://github.com/LeslieZhoa/Learning_Spark/blob/master/1.%E5%AE%89%E8%A3%85%E7%8E%AF%E5%A2%83/img/15.png?raw=true"/><br>
      <img src="https://github.com/LeslieZhoa/Learning_Spark/blob/master/1.%E5%AE%89%E8%A3%85%E7%8E%AF%E5%A2%83/img/16.png?raw=true"/><br>
     - 将用户设置为root.打开终端
-    ```shell
-    sudo passwd root
-    # 输入搭建环境时设置的密码，并设置新的密码
-    # 编辑 /etc/lightdm/lightdm.conf 文件
-
-    sudo gedit  /etc/lightdm/lightdm.conf
-    # 更改为如下：
-    [Seat:*]
-    autologin-guest=false
-    autologin-user=root
-    autologin-user-timeout=0
-    greeter-session=lightdm-gtk-greeter 
+        ```shell
+        sudo passwd root
+        # 输入搭建环境时设置的密码，并设置新的密码
+        # 编辑 /etc/lightdm/lightdm.conf 文件
     
-    # 编辑/root/.profile文件，增加tty -s &&：
-
-    sudo gedit /root/.profile 
-
-    # ~/.profile: executed by Bourne-compatible login shells.
+        sudo gedit  /etc/lightdm/lightdm.conf
+        # 更改为如下：
+        [Seat:*]
+        autologin-guest=false
+        autologin-user=root
+        autologin-user-timeout=0
+        greeter-session=lightdm-gtk-greeter 
+        
+        # 编辑/root/.profile文件，增加tty -s &&：
     
-    if [ "$BASH" ]; then
-      if [ -f ~/.bashrc ]; then
-        . ~/.bashrc
-      fi
-    fi
+        sudo gedit /root/.profile 
     
-    tty -s && mesg n || true 
+        # ~/.profile: executed by Bourne-compatible login shells.
+        
+        if [ "$BASH" ]; then
+          if [ -f ~/.bashrc ]; then
+            . ~/.bashrc
+          fi
+        fi
+        
+        tty -s && mesg n || true 
+        
+     
+        # 重启系统即可 
+        ```
     
-    # 重启系统即可 
+2. #### 配置静态ip
+    
+    - 打开windows的cmd输入ipconfig，找到本机的ip地址，例如我的是192.168.199.122，我设置相应虚拟机的ip，node-1:192.168.199.128；node-2:192.168.199.129；node-3:192.168.199.130。<br>
+    <img src="https://github.com/LeslieZhoa/Learning_Spark/blob/master/1.%E5%AE%89%E8%A3%85%E7%8E%AF%E5%A2%83/img/17.png?raw=true"/><br>
+    - 右键node-1点击设置；点击网络选项，连接方式，桥接网卡。<br>
+    <img src="https://github.com/LeslieZhoa/Learning_Spark/blob/master/1.%E5%AE%89%E8%A3%85%E7%8E%AF%E5%A2%83/img/18.png?raw=true"/><br>
+<img src="https://github.com/LeslieZhoa/Learning_Spark/blob/master/1.%E5%AE%89%E8%A3%85%E7%8E%AF%E5%A2%83/img/19.png?raw=true"/><br>
+    - 启动node-1服务器，点击右上角的网络连接编辑连接；点击有线连接1，编辑；ipv4设置，方法选手动，增加地址，即上文确定的node-1静态ip，DNS服务器我选择与网关保持一致;保存，继续点击右上角网络连接，点击有线连接1;打开终端输入ifconfig会发现ip改变了<br>
+    <img src="https://github.com/LeslieZhoa/Learning_Spark/blob/master/1.%E5%AE%89%E8%A3%85%E7%8E%AF%E5%A2%83/img/20.png?raw=true"/><br>
+<img src="https://github.com/LeslieZhoa/Learning_Spark/blob/master/1.%E5%AE%89%E8%A3%85%E7%8E%AF%E5%A2%83/img/21.png?raw=true"/><br>
+    - 配置虚拟机到本机映射（三台虚拟机）.进入本机目录，打开hosts文件：C:\Windows\System32\drivers\etc,添加虚拟机IP：
+        ```
+        192.168.199.128    node-1
+        192.168.199.129    node-2
+        192.168.199.130    node-3
+        ```
+        检查是否可以ping node-1
+    - 配置三台虚拟机之间的IP映射
+        ```
+        sudo apt-get update
+        sudo apt-get install vim
+        vim /etc/hosts
+        
+        # 添加如下
+        192.168.199.128    node-1
+        192.168.199.129    node-2
+        192.168.199.130    node-3
+        ```
+    - ssh 免密登陆，下载ssh  apt-get install openssh-server
+        ```
+        #对本机免密码登录：
+        ssh-keygen -t rsa
+        cd /root/.ssh
+        cp id_rsa.pub authorized_keys
+        
+        # 三台机器之间的免密码登录：
+        ssh-copy-id -i  目标主机名\
+        例：ssh-copy-id -i node-2
+        ```
+        ```
+        # 修改ssh，使本地也可ssh到node-1
+        vim /etc/ssh/sshd_config 
+        # 找到PermitRootLogin prohibit-password将该行改为PermitRootLogin yes，注意去掉前面的# 
+        # 重启ssh
+        service ssh restart
+        ```
+3. #### jdk安装
+    - 点击[点击此链接](https://download.oracle.com/otn-pub/java/jdk/13.0.2+8/d4173c853231432d94f001e99d882ca7/jdk-13.0.2_linux-x64_bin.tar.gz?AuthParam=1583251205_0b11e0c4802087ccc2f0305dd154dba1)下载jdk到node-1里。
+        ```
+        # 创建目录
+        sudo mkdir /usr/lib/jvm
+        # 解压
+        tar zxvf jdk-13.0.2_linux-x64_bin.tar.gz -C /usr/java/
+        # 修改环境变量
+        sudo vim ~/.bashrc
+        # 末尾添加
+        export JAVA_HOME=/usr/java/jdk-13.0.2  ## 这里要注意目录要换成自己解压的jdk 目录
+        export JRE_HOME=${JAVA_HOME}/jre  
+        export CLASSPATH=.:${JAVA_HOME}/lib:${JRE_HOME}/lib export PATH=${JAVA_HOME}/bin:$PATH  
+        
+        #  使环境变量马上生效
 
-    ```
+        source ~/.bashrc
+        # 设置系统默认jdk 版本
+        sudo update-alternatives --install /usr/bin/java java /usr/java/jdk-13.0.2/bin/java 300  
+        sudo update-alternatives --install /usr/bin/javac javac /usr/java/jdk-13.0.2/bin/javac 300  
+        sudo update-alternatives --install /usr/bin/jar jar /usr/java/jdk-13.0.2/bin/jar 300   
+        sudo update-alternatives --install /usr/bin/javap javap /usr/java/jdk-13.0.2/bin/javap 300
+        
+        # 然后执行:
+        sudo update-alternatives --config java
+        
+        # 测试
+        java --version
+        ```
