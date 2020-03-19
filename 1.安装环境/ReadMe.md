@@ -80,21 +80,35 @@
         sudo apt-get install vim
         vim /etc/hosts
         
-        # 将里面东西全部删除替换如下
+        # 注释127.0.1.1      node-1，并在文件末尾添加如下
         192.168.199.128    node-1
         192.168.199.129    node-2
         192.168.199.130    node-3
         ```
-    - ssh 免密登陆，下载ssh  apt-get install openssh-server
+    - 开启telnet服务
+        ```
+        #安装openbsd-inetd
+
+        sudo apt-get install openbsd-inetd
+
+
+
+        # 安装telnetd
+        sudo apt-get install telnetd
+
+
+
+        # 重启openbsd-inetd
+        sudo /etc/init.d/openbsd-inetd restart
+        ```
+    - ssh 免密登陆，下载ssh，  sudo apt-get install openssh-server
         ```
         #对本机免密码登录：
         ssh-keygen -t rsa
         cd /root/.ssh
         cp id_rsa.pub authorized_keys
         
-        # 三台机器之间的免密码登录：
-        ssh-copy-id -i  目标主机名\
-        例：ssh-copy-id -i node-2
+       
         ```
         ```
         # 修改ssh，使本地也可ssh到node-1
@@ -107,7 +121,7 @@
     - 点击[点击此链接](https://download.oracle.com/otn-pub/java/jdk/13.0.2+8/d4173c853231432d94f001e99d882ca7/jdk-13.0.2_linux-x64_bin.tar.gz?AuthParam=1583251205_0b11e0c4802087ccc2f0305dd154dba1)下载jdk到node-1里。
         ```
         # 创建目录
-        sudo mkdir /usr/lib/jvm
+        sudo mkdir /usr/java
         # 解压
         tar zxvf jdk-13.0.2_linux-x64_bin.tar.gz -C /usr/java/
         # 修改环境变量
@@ -133,16 +147,16 @@
         java --version
         ```
 4. #### 搭建hadoop集群
-    - 点击[此链接](https://mirrors.tuna.tsinghua.edu.cn/apache/hadoop/common/hadoop-2.10.0/hadoop-2.10.0.tar.gz)下载hadoop包到node-1,解压：
+    - 点击[此链接](https://mirrors.tuna.tsinghua.edu.cn/apache/hadoop/common/hadoop-2.7.7/hadoop-2.7.7.tar.gz)下载hadoop包到node-1,解压：
         ```
         # 建立apps文件夹
         mkdir BigData/apps
         # 解压hadoop
-        tar -zxvf BigData/hadoop-2.10.0.tar.gz -C BigData/apps
+        tar -zxvf BigData/hadoop-2.7.7.tar.gz -C BigData/apps
         ```
     - 配置文件
         ```
-        cd BigData/apps/hadoop-2.10.0/etc/hadoop
+        cd BigData/apps/hadoop-2.7.7/etc/hadoop
         # 查看java目录
         which java
         # 我的显示 /usr/java/jdk-13.0.2/bin/java
@@ -221,7 +235,7 @@
         ```
         vim /etc/profile
         # 在文件末尾加上
-        export HADOOP_HOME=/root/BigData/apps/hadoop-2.10.0/
+        export HADOOP_HOME=/root/BigData/apps/hadoop-2.7.7/
         export PATH=$PATH:$HADOOP_HOME/bin:$HADOOP_HOME/sbin
         export HADOOP_COMMOM_LIB_NATIVE_DIR=$HADOOP_HOME/lib/native
         
@@ -239,6 +253,11 @@
             ```
         
         - node-3按照同样方法
+    - 三台机器之间的免密码登录：
+        ```
+        ssh-copy-id -i  目标主机名\
+        例：ssh-copy-id -i node-2
+        ```
     - 初始化
         ```
         hadoop namenode -format
@@ -246,5 +265,46 @@
         start-dfs.sh
         # 登陆node-1:50070看Live Nodes是否为3
         ```
+
+5. #### spark集群搭建
+    - 点击[此链接](https://mirrors.tuna.tsinghua.edu.cn/apache/spark/spark-2.4.5/spark-2.4.5-bin-hadoop2.7.tgz)下载spark到node-1
+    - 解压tar -zxvf BigData/spark-2.4.5-bin-hadoop2.7.tgz  -C BigData/apps/
+    - 修改文件
+        ```
+        cd BigData/apps/spark-2.4.5-bin-hadoop2.7/conf
+        mv spark-env.sh.template spark-env.sh
+        mv slaves.template slaves
     
+        vim spark-env.sh
+        # 在文件最末尾添加
+        export JAVA_HOME=/usr/java/jdk-13.0.2/
+        export SPARK_MASTER_HOST=node-1
+        export SPARK_MASTER_PORT=7077
+
+        vim slaves
+        # 将内容删除替换如下：
+        node-1
+        node-2
+        node-3
+        
+        # 复制
+        cd BigData/apps/
+        scp -r spark-2.4.5-bin-hadoop2.7/ node-2:~/BigData/apps
+        scp -r spark-2.4.5-bin-hadoop2.7/ node-3:~/BigData/apps
+        ```
+    - 运行
+        ```
+        cd ~/BigData/apps/spark-2.4.5-bin-hadoop2.7
+        sbin/start-all.sh
+        # 登陆http://node-1:8080/查看
+        
+        # 集群运行程序（可在多个上运行）
+ 
+        bin/spark-submit --master spark://node-1:7077,node-2:7077 --class org.apache.spark.examples.SparkPi examples/jars/spark-examples_2.11-2.4.5.jar 100
+
+        # 提交一个spark程序到集群，会产生的进程
+        # SparkSubmit (Driver) 提交任务
+        # Executor 执行真正计算任务
+        ```
+
         
