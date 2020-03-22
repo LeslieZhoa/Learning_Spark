@@ -85,22 +85,7 @@
         192.168.199.129    node-2
         192.168.199.130    node-3
         ```
-    - 开启telnet服务
-        ```
-        #安装openbsd-inetd
-
-        sudo apt-get install openbsd-inetd
-
-
-
-        # 安装telnetd
-        sudo apt-get install telnetd
-
-
-
-        # 重启openbsd-inetd
-        sudo /etc/init.d/openbsd-inetd restart
-        ```
+    
     - ssh 免密登陆，下载ssh，  sudo apt-get install openssh-server
         ```
         #对本机免密码登录：
@@ -117,17 +102,23 @@
         # 重启ssh
         service ssh restart
         ```
-3. #### jdk安装
-    - 点击[点击此链接](https://download.oracle.com/otn-pub/java/jdk/13.0.2+8/d4173c853231432d94f001e99d882ca7/jdk-13.0.2_linux-x64_bin.tar.gz?AuthParam=1583251205_0b11e0c4802087ccc2f0305dd154dba1)下载jdk到node-1里。
+3. #### 安装python3
+    - 新建一个BigData文件夹用于存储下载数据,mkdir ~/BigData
+    - 点击[此链接](https://mirrors.tuna.tsinghua.edu.cn/anaconda/archive/Anaconda3-4.2.0-Linux-x86_64.sh)下载Anaconda-3-4.2.0到BigData
+    - 安装Anaconda，运行bash ~/BigData/Anaconda3-4.2.0-Linux-x86_64.sh，其余操作按指示来会自动把Path加入环境中
+    - 开启新的终端pip install -i https://pypi.tuna.tsinghua.edu.cn/simple pyspark
+3. #### jdk安装（版本一定要是java8）
+    - 进入到[java8下载界面](https://www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html)下载Linux x64 Compressed Archive到node-1的BigData中（可能需要注册账号才能下载）。
         ```
         # 创建目录
-        sudo mkdir /usr/java
+        sudo mkdir /usr/lib/jvm/
         # 解压
-        tar zxvf jdk-13.0.2_linux-x64_bin.tar.gz -C /usr/java/
+        tar zxvf ~/BigData/jdk-8u241-linux-x64.tar.gz -C /usr/lib/jvm/
+        mv /usr/lib/jvm/jdk1.8.0_241/ /usr/lib/jvm/java
         # 修改环境变量
         sudo vim ~/.bashrc
         # 末尾添加
-        export JAVA_HOME=/usr/java/jdk-13.0.2  ## 这里要注意目录要换成自己解压的jdk 目录
+        export JAVA_HOME=/usr/lib/jvm/java/  ## 这里要注意目录要换成自己解压的jdk 目录
         export JRE_HOME=${JAVA_HOME}/jre  
         export CLASSPATH=.:${JAVA_HOME}/lib:${JRE_HOME}/lib export PATH=${JAVA_HOME}/bin:$PATH  
         
@@ -135,36 +126,35 @@
 
         source ~/.bashrc
         # 设置系统默认jdk 版本
-        sudo update-alternatives --install /usr/bin/java java /usr/java/jdk-13.0.2/bin/java 300  
-        sudo update-alternatives --install /usr/bin/javac javac /usr/java/jdk-13.0.2/bin/javac 300  
-        sudo update-alternatives --install /usr/bin/jar jar /usr/java/jdk-13.0.2/bin/jar 300   
-        sudo update-alternatives --install /usr/bin/javap javap /usr/java/jdk-13.0.2/bin/javap 300
+        sudo update-alternatives --install /usr/bin/java java /usr/lib/jvm/java/bin/java 300  
+        sudo update-alternatives --install /usr/bin/javac javac /usr/lib/jvm/java/bin/javac 300  
+        sudo update-alternatives --install /usr/bin/jar jar /usr/lib/jvm/java/bin/jar 300   
+        sudo update-alternatives --install /usr/bin/javap javap /usr/lib/jvm/java/bin/javap 300
         
         # 然后执行:
         sudo update-alternatives --config java
         
         # 测试
-        java --version
+        java -version
         ```
 4. #### 搭建hadoop集群
-    - 点击[此链接](https://mirrors.tuna.tsinghua.edu.cn/apache/hadoop/common/hadoop-2.7.7/hadoop-2.7.7.tar.gz)下载hadoop包到node-1,解压：
+    - 点击[此链接](http://archive.apache.org/dist/hadoop/core/hadoop-2.7.3/hadoop-2.7.3.tar.gz)下载hadoop包到node-1的BigData(这里选用版本为2.7.3),解压：
         ```
-        # 建立apps文件夹
-        mkdir BigData/apps
-        # 解压hadoop
-        tar -zxvf BigData/hadoop-2.7.7.tar.gz -C BigData/apps
+        sudo tar -zxf ~/BigData/hadoop-2.7.3.tar.gz -C /usr/local    # 解压到/usr/local中
+        cd /usr/local/
+        sudo mv ./hadoop-2.7.3/ ./hadoop 
         ```
     - 配置文件
         ```
-        cd BigData/apps/hadoop-2.7.7/etc/hadoop
+        cd /usr/local/hadoop/etc/hadoop
         # 查看java目录
         which java
-        # 我的显示 /usr/java/jdk-13.0.2/bin/java
+        # 我的显示 /usr/lib/jvm/java//bin/java
         # 配置java环境
         vim hadoop-env.sh
         # 找到export JAVA_HOME=
         #更改为
-        export JAVA_HOME=/usr/java/jdk-13.0.2/
+        export JAVA_HOME=/usr/lib/jvm/java/
         
         # 配置core-site.xml
         vim core-site.xml
@@ -183,15 +173,15 @@
          <configuration>
             <property>
                 <name>dfs.namenode.name.dir</name>
-                <value>/root/BigData/hdpdata/name</value>
+                <value>/usr/local/hadoop/name</value>
             </property>
             <property>
                 <name>dfs.datanode.data.dir</name>
-                <value>/root/BigData/hdpdata/data</value>
+                <value>/usr/local/hadoop/data</value>
             </property>
              <property>
                 <name>dfs.tmp.dir</name>
-                <value>/root/BigData/hdpdata/tmp</value>
+                <value>/usr/local/hadoop/tmp</value>
              </property>
             <property>
                 <name>dfs.replication</name>
@@ -227,7 +217,6 @@
         # 配置slaves
         vim slaves
         #内容删除替换如下：
-        node-1
         node-2
         node-3
         ```
@@ -235,12 +224,54 @@
         ```
         vim /etc/profile
         # 在文件末尾加上
-        export HADOOP_HOME=/root/BigData/apps/hadoop-2.7.7/
+        export HADOOP_HOME=/usr/local/hadoop/
         export PATH=$PATH:$HADOOP_HOME/bin:$HADOOP_HOME/sbin
         export HADOOP_COMMOM_LIB_NATIVE_DIR=$HADOOP_HOME/lib/native
         
         # 激活一下
         source /etc/profile
+        ```
+    
+     
+
+5. #### spark集群搭建
+    - 点击[spark下载界面](https://spark.apache.org/downloads.html)，我的版本选择是2.4.5，choose a package type是Pre-build with user-provided Apache Hadoop下载spark到node-1的BigData
+    - 解压
+        ```
+        sudo tar -zxf ~/BigData/spark-2.4.5-bin-without-hadoop.tgz -C /usr/local/
+        cd /usr/local
+        sudo mv ./spark-2.4.5-bin-without-hadoop/ ./spark
+
+        ```
+    - 修改文件
+        ```
+        $ cd /usr/local/spark/conf
+        mv spark-env.sh.template spark-env.sh
+        mv slaves.template slaves
+    
+        vim spark-env.sh
+        # 在文件最末尾添加
+        export SPARK_DIST_CLASSPATH=$(/usr/local/hadoop/bin/hadoop classpath) 
+        export HADOOP_CONF_DIR=/usr/local/hadoop/etc/hadoop
+        # 填写你自己node-1的ip
+        export SPARK_MASTER_IP=192.168.199.128
+
+
+        vim slaves
+        # 将内容删除替换如下：
+        node-2
+        node-3
+        
+        # 配置python3环境
+        vim ~/.bashrc
+        # 末尾添加入下
+        export SPARK_HOME="/usr/local/spark/"
+        # 运行which python得到的地址
+        export PYSPARK_PYTHON=/root/anaconda3/bin/python
+          
+        # 激活环境
+        source ~/.bashrc
+
         ```
     - 复制其他虚拟环境。
         - 退出node-1，右键复制，完全复制node-2和node-3
@@ -255,59 +286,69 @@
         - node-3按照同样方法
     - 三台机器之间的免密码登录：
         ```
-        ssh-copy-id -i  目标主机名\
-        例：ssh-copy-id -i node-2
+        # 三台机器都运行
+        ssh-copy-id -i node-1
+        ssh-copy-id -i node-2
+        ssh-copy-id -i node-3
         ```
     - 初始化
+        在node-1上运行
         ```
         hadoop namenode -format
         # 启动
         start-dfs.sh
-        # 登陆node-1:50070看Live Nodes是否为3
-        ```
-
-5. #### spark集群搭建
-    - 点击[此链接](https://mirrors.tuna.tsinghua.edu.cn/apache/spark/spark-2.4.5/spark-2.4.5-bin-hadoop2.7.tgz)下载spark到node-1
-    - 解压tar -zxvf BigData/spark-2.4.5-bin-hadoop2.7.tgz  -C BigData/apps/
-    - 修改文件
-        ```
-        cd BigData/apps/spark-2.4.5-bin-hadoop2.7/conf
-        mv spark-env.sh.template spark-env.sh
-        mv slaves.template slaves
-    
-        vim spark-env.sh
-        # 在文件最末尾添加
-        export JAVA_HOME=/usr/java/jdk-13.0.2/
-        export SPARK_MASTER_HOST=node-1
-        export SPARK_MASTER_PORT=7077
-
-        vim slaves
-        # 将内容删除替换如下：
-        node-1
-        node-2
-        node-3
-        
-        # 复制
-        cd BigData/apps/
-        scp -r spark-2.4.5-bin-hadoop2.7/ node-2:~/BigData/apps
-        scp -r spark-2.4.5-bin-hadoop2.7/ node-3:~/BigData/apps
+        # 登陆node-1:50070看Live Nodes是否为2
         ```
     - 运行
+        
+        运行spark环境
         ```
-        cd ~/BigData/apps/spark-2.4.5-bin-hadoop2.7
+        cd /usr/local/spark/
         sbin/start-all.sh
         # 登陆http://node-1:8080/查看
+        ```  
+        写python wordcount.py程序
+        ```
+        mkdir /usr/local/spark/mycode
+        mkdir /usr/local/spark/mycode/python
         
-        # 集群运行程序（可在多个上运行）
- 
-        bin/spark-submit --master spark://node-1:7077,node-2:7077 --class org.apache.spark.examples.SparkPi examples/jars/spark-examples_2.11-2.4.5.jar 100
-
+        cd /usr/local/spark/mycode/python
+        vim WordCount.py
+        # 写入如下代码
+        from pyspark import SparkConf, SparkContext
+        conf = SparkConf().setMaster("local").setAppName("My App")
+        sc = SparkContext(conf = conf)
+        logFile = "file:///usr/local/spark/README.md"
+        logData = sc.textFile(logFile, 2).cache()
+        numAs = logData.filter(lambda line: 'a' in line).count()
+        numBs = logData.filter(lambda line: 'b' in line).count()
+        print('Lines with a: %s, Lines with b: %s' % (numAs, numBs))
+        
+        ```
+        运行wordcount代码
+        ```
+        cd /usr/local/spark/
+        bin/spark-submit  /usr/local/spark/mycode/python/WordCount.py
+        ```
+        在集群中运行pyspark
+        ```
+        # 向hdfs添加Readme文件
+        hadoop fs -put /usr/local/spark/README.md /
+        # 运行pyspark
+        bin/pyspark  --master  spark://node-1:7077
+        # 在pyspark运行以下测试代码
+        textFile = sc.textFile("hdfs://node-1:9000/README.md")
+        textFile.count()
+        textFile.first()
         # 提交一个spark程序到集群，会产生的进程
         # SparkSubmit (Driver) 提交任务
         # Executor 执行真正计算任务
-        ```
 
-### 如果配置还是出错，去百度网盘下载链接：https://pan.baidu.com/s/1uOsnP92catvt_h_1AGjATw 提取码：sa5a
-### 大小十一个多G，可能要充会员下载，下载完导入镜像然后把上述有关ip的地方全部更改一下就可以了
+        ```
+       
+
+### 如果配置还是出错，去百度网盘下载链接：https://pan.baidu.com/s/1rRvBzwr5YUAnFyajutFrjg 提取码：u8r2 
+
+### 大小15多G，可能要充会员下载，下载完导入镜像然后把上述有关ip的地方全部更改一下就可以了
 
         
