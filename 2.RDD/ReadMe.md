@@ -239,4 +239,166 @@
         textFile.saveAsTextFile("writeback")
 
         ```
+3. #### 几个小例子
+- 求TOP值<br>
+    - 说明：<br>
+    有两个文件，每一行分别代表orderid,userid,payment,productid；求top n个payment值
+    - 准备数据<br>
+        在/usr/local/spark/mycode/rdd/下新建file文件夹，文件夹中再新建俩文本
+        ```
+        # file1.txt里面内容
+        1,1768,50,155 
+        2,1218, 600,211 
+        3,2239,788,242 
+        4,3101,28,599 
+        5,4899,290,129 
+        6,3110,54,1201
+        7,4436,259,877 
+        8,2369,7890,27
+        
+        # file2.txt里面内容
+        100,4287,226,233 
+        101,6562,489,124 
+        102,1124,33,17 
+        103,3267,159,179 
+        104,4569,57,125
+        105,1438,37,116
+        
+        # 把file存入hdfs里
+        hadoop fs -put /usr/local/spark/mycode/rdd/file/ /file
+        ```
+    - 写脚本<br>
+        在/usr/local/spark/mycode/rdd/新建TopN.py里面内容如下
+        ```python
+        from pyspark import SparkConf, SparkContext
+        
+        conf = SparkConf().setMaster("local").setAppName("ReadHBase")
+        sc = SparkContext(conf = conf)
+        lines = sc.textFile("/file")
+        result1 = lines.filter(lambda line:(len(line.strip()) > 0) and (len(line.split(","))== 4))
+        result2 = result1.map(lambda x:x.split(",")[2])
+        result3 = result2.map(lambda x:(int(x),""))
+        result4 = result3.repartition(1)
+        result5 = result4.sortByKey(False)
+        result6 = result5.map(lambda x:x[0])
+        result7 = result6.take(5)
+        for a in result7:
+            print(a)
+        ```
+    - 运行
+        ```
+        cd /usr/local/spark/mycode/rdd/
+        python TopN.py
+        ```
+- 文件排序<br>
+    - 说明：<br>
+    有多个输入文件，每个文件中的每一行内容均为一个整数。要求读取所有文件中的整数，进行排序后，输出到一个新的文件中，输出的内容个数为每行两个整数，第一个整数为第二个整数的排序位次，第二个整数为原待排序的整数
+    - 准备数据：<br>
+       在/usr/local/spark/mycode/rdd/新建sortfile文件夹，在文件夹里新建如下文本
+        ```
+        # file1.txt里面写入
+        33
+        37
+        12
+        40
+        
+        # file2.txt里面写入
+        4
+        16
+        39
+        5
+        
+        # file3.txt里面写入
+        1
+        45
+        25
+        
+        # 把file存入hdfs里
+        hadoop fs -put /usr/local/spark/mycode/rdd/sortfile/ /
+        
+        ```
+    - 写脚本<br>
+        在/usr/local/spark/mycode/rdd/新建FileSort.py写入如下内容
+        ```
+        from pyspark import SparkConf, SparkContext
+        index = 0
+        def getindex():
+            global index
+            index+=1
+            return index
+        def main():
+            conf = SparkConf().setMaster("local[1]").setAppName("FileSort")
+            sc = SparkContext(conf = conf)
+            lines = sc.textFile("/sortfile")
+            index = 0
+            result1 = lines.filter(lambda line:(len(line.strip()) > 0))
+            result2 = result1.map(lambda x:(int(x.strip()),""))
+            result3 = result2.repartition(1)
+            result4 = result3.sortByKey(True)
+            result5 = result4.map(lambda x:x[0])
+            result6 = result5.map(lambda x:(getindex(),x))
+            result6.foreach(print)
+            result6.saveAsTextFile("file:///usr/local/spark/mycode/rdd/filesort/sortresult")
+        if __name__ == '__main__':
+            main()
+        ```
+    - 运行
+        ```
+        cd /usr/local/spark/mycode/rdd/
+        python FileSort.py
+        ```
+- 二次排序
+    - 说明：<br>
+        对于一个给定的文件（数据如file1.txt所示），请对数据进行排序，首先根据第1列数据降序排序，如果第1列数据相等，则根据第2列数据降序排序
+    - 准备数据<br>
+        在/usr/local/spark/mycode/rdd/新建file.txt文本并写入以下内容
+        ```
+        5 3
+        1 6
+        4 9
+        8 3
+        4 7
+        5 6
+        3 2
+        
+        # 把file存入hdfs里
+        hadoop fs -put /usr/local/spark/mycode/rdd/file.txt /
+        ```
+    - 写脚本<br>
+        在/usr/local/spark/mycode/rdd/新SecondarySort.py建写入如下内容
+        ```
+        from operator import gt
+        from pyspark import SparkContext, SparkConf
+        
+        class SecondarySortKey():
+            def __init__(self, k):
+                self.column1 = k[0]
+                self.column2 = k[1]
+        
+            def __gt__(self, other): 
+                if other.column1 == self.column1:
+                    return gt(self.column2,other.column2)
+                else:
+                    return gt(self.column1, other.column1)
+        def main():
+            conf = SparkConf().setAppName('spark_sort').setMaster('local[1]')
+            sc = SparkContext(conf=conf)
+            file="/file.txt"
+            rdd1 = sc.textFile(file)
+            rdd2 = rdd1.filter(lambda x:(len(x.strip()) > 0))
+            rdd3 = rdd2.map(lambda x:((int(x.split(" ")[0]),int(x.split(" ")[1])),x))
+            rdd4 = rdd3.map(lambda x: (SecondarySortKey(x[0]),x[1]))
+            rdd5 = rdd4.sortByKey(False)
+            rdd6 = rdd5.map(lambda x:x[1])
+            rdd6.foreach(print)
+        
+        if __name__ == '__main__':
+            main()
+        
+        ```
+    - 运行
+        ```
+        cd /usr/local/spark/mycode/rdd/
+        python SecondarySort.py
+        ```
             
