@@ -5,3 +5,4 @@
 4. ### [Spark SQL](https://github.com/LeslieZhoa/Learning_Spark/blob/master/4.Spark%20SQL/ReadMe.md)
 5. ### [Spark Streaming](https://github.com/LeslieZhoa/Learning_Spark/blob/master/5.Spark%20Streaming/ReadMe.md)
 6. ### [Structure Streaming](https://github.com/LeslieZhoa/Learning_Spark/blob/master/6.Structure%20Streaming/ReadMe.md)
+7. ### [Spark MLlib](https://github.com/LeslieZhoa/Learning_Spark/blob/master/5.Spark%20MLlib/ReadMe.md)
