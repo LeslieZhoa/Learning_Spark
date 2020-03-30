@@ -1,0 +1,38 @@
+### 总结
+- spark组件
+    - [ ] master：管理集群和节点，不参与计算
+    - [ ] worker：计算节点，进程本身不参与计算，和master汇报
+    - [ ] Driver：运行程序到main方法，创建sparkcontext对象
+    - [ ] spark context：控制整个application到生命周期，包括dagsheduler和task scheduler等组件
+    - [ ] client：用户提交程序入口
+- Driver功能：
+    - [ ] 负责向集群申请资源，向master注册信息，负责作业调度，负责作业解析，生成stage并调度task到Executor上。包括DAGScheduler,TaskScheduler.(遇到宽依赖就切割stage)
+- spark工作机制
+    - [ ] 用户在client端提交作业后，由Driver运行main方法并创建spark context上下文
+    - [ ] 执行rdd算子，形成dag图输入dagscheduler，按照rdd之间依赖关系划分stage输入task scheduler
+    - [ ] task scheduler会将stage划分为task set分发到各个节点段executor执行
+- spark部署模式
+    - [ ] local[N]:本地多线程运行
+    - [ ] standalone：spark自带模式运行
+    - [ ] yarn：仅支持粗粒度资源分配，包含cluster和client运行模式，cluster适合生产，driver运行在集群子节点上，具有容错功能，client适合调试，driver运行再客户端
+    - [ ] Mesos：有粗粒度和细粒度两种选择
+- spark 技术栈组件
+    - [ ] spark core:包含有向无环图， RDD，Lingege，Cache，broadcast等，并封装了底层通讯框架，是spark基础
+    - [ ] SparkStreaming:对实时数据高通量，容错处理等流式处理方式，可以对多种源进行类似Map,Reduce,join等操作，将流式计算分解成短小批处理
+    - [ ] Spark sql:统一处理表和RDD，可以对数据用sql语句进行查询和分析
+    - [ ] BlinkDB:用于海量数据运行交互式sql查询大规模并行查询引擎
+    - [ ] MLBase:专注于机器学习的工具
+    - [ ] GraphX:用于图和图并行计算
+- Work工作：
+    - [ ] 管理当前节点内存，cpu使用情况，接受master分配资源指令
+    - [ ] 通过ExecutorRunner启动程序分配任务
+- Spark快原因:
+    - [ ] 优先基于内存
+    - [ ] 基于DAG的调度
+    - [ ] 容错机制Linage
+- Spark进行并行计算
+    - [ ] 用户提交任务成为application，一个application对应一个sparkcontext
+    - [ ] app中存在多个job,每触发一次action操作就产生一个job，这些job可以并行或串行执行，每个job中有多个stage
+    - [ ] stage是shuffle过程中DAGSchaduler通过RDD之间依赖关系划分job而来的，每个stage里面有多个task
+    - [ ] 组成taskset有TaskSchaduler分发到executor中执行
+    - [ ] executor生命周期和app一样，即使没有job运行也存在，task可以快速启动读取内存进行计算
